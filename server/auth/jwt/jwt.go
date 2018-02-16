@@ -45,7 +45,7 @@ func UnpackToken(signedString string, signingSecret string, factory TokenDataFac
 	token, err := jwt.Parse(signedString, func(token *jwt.Token) (interface{}, error) {
 		// Don't forget to validate the alg is what you expect:
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, jwt.NewValidationError("invalid JWT token", 0)
+			return nil, jwt.NewValidationError("Invalid JWT token", 0)
 		}
 
 		return []byte(signingSecret), nil
@@ -58,7 +58,7 @@ func UnpackToken(signedString string, signingSecret string, factory TokenDataFac
 	// Check claims and if token is valid
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
-		return nil, jwt.NewValidationError("invalid JWT token", 0)
+		return nil, jwt.NewValidationError("Invalid JWT token", 0)
 	}
 
 	// Set claims from token

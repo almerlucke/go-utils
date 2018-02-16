@@ -22,7 +22,7 @@ type Queryer interface {
 
 // New database connection
 func New(config *Configuration) (*DB, error) {
-	db, err := sqlx.Open("mysql", config.ConnectionString())
+	db, err := sqlx.Open(config.SQLType, config.ConnectionString())
 	if err != nil {
 		return nil, err
 	}

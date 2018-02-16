@@ -35,12 +35,12 @@ func JWTAuthWrap(signingSecret string, languageMatcher language.Matcher, factory
 
 		// Check if header contains Bearer string and token
 		if len(authFields) != 2 {
-			response.Unauthorized(rw, "not a valid Authorization header")
+			response.Unauthorized(rw, "Invalid Authorization header")
 			return
 		}
 
 		if authFields[0] != "Bearer" {
-			response.Unauthorized(rw, "not a valid Authorization header")
+			response.Unauthorized(rw, "Invalid Authorization header")
 			return
 		}
 
@@ -61,7 +61,7 @@ func BasicAuthWrap(username string, password string, languageMatcher language.Ma
 	return func(rw http.ResponseWriter, r *http.Request, pm httprouter.Params) {
 		if !basic.ValidateBasicAuthHeader(r.Header.Get("Authorization"), username, password) {
 			rw.Header().Set("WWW-Authenticate", "Basic realm=\"Authorization Required\"")
-			response.Unauthorized(rw, "invalid username and password")
+			response.Unauthorized(rw, "Invalid username and password")
 			return
 		}
 

@@ -4,6 +4,7 @@ import "fmt"
 
 // Configuration for sql db
 type Configuration struct {
+	SQLType    string            `json:"sqlType"`
 	User       string            `json:"user"`
 	Password   string            `json:"password"`
 	Protocol   string            `json:"protocol"`

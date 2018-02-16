@@ -5,7 +5,6 @@ package migration
 import (
 	"errors"
 	"io/ioutil"
-	"log"
 
 	"github.com/almerlucke/go-utils/sql"
 )
@@ -64,14 +63,12 @@ type (
 
 // Migrate migrate via direct query string
 func (migration *QueryMigration) Migrate(queryer sql.Queryer) error {
-	log.Printf("migrate query %v\n", migration.Query)
 	_, err := queryer.Exec(migration.Query)
 	return err
 }
 
 // Migrate migrate via SQL script
 func (migration *ScriptMigration) Migrate(queryer sql.Queryer) error {
-	log.Printf("migrate script %v\n", migration.Script)
 	queryBytes, err := ioutil.ReadFile(migration.Script)
 	if err != nil {
 		return err
@@ -83,7 +80,6 @@ func (migration *ScriptMigration) Migrate(queryer sql.Queryer) error {
 
 // Migrate migrate via custom function
 func (migration *CustomMigration) Migrate(queryer sql.Queryer) error {
-	log.Printf("migrate custom\n")
 	return migration.Func(queryer)
 }
 
@@ -155,10 +151,8 @@ func Migrate(queryer sql.Queryer, currentVersion string, versions []*Version) er
 
 	if currentVersion > info.Version {
 		for _, migrationVersion := range versions {
-			log.Printf("version %v\n", migrationVersion.version)
 			// We only perform migrations for versions up to info version and including current version
 			if info.Version < migrationVersion.version && migrationVersion.version <= currentVersion {
-				log.Printf("migrate version %v\n", migrationVersion.version)
 				// Perform migration of the version
 				migrationErr := migrationVersion.Migrate(queryer)
 				if migrationErr != nil {
@@ -174,7 +168,7 @@ func Migrate(queryer sql.Queryer, currentVersion string, versions []*Version) er
 		}
 	} else if currentVersion < info.Version {
 		// The current code version is lacking behind the database version, this is not allowed
-		return errors.New("database migration version is greater than current version")
+		return errors.New("Database migration version is greater than current version")
 	}
 
 	return nil

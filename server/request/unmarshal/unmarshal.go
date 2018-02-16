@@ -140,11 +140,11 @@ func setFieldValue(paramValue string, field reflect.Value) error {
 func unmarshalParamsMap(paramsMap map[string]string, obj interface{}) error {
 	desc, ok := structural.NewStructDescriptor(obj)
 	if !ok {
-		return errors.New("object is not a struct or struct ptr")
+		return errors.New("Object is not a struct or struct ptr")
 	}
 
 	if !desc.CanSet() {
-		return errors.New("object fields can not be set")
+		return errors.New("Object fields can not be set")
 	}
 
 	err := desc.ScanFields(true, true, nil, func(field structural.FieldDescriptor, context interface{}) error {
