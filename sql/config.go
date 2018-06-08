@@ -14,6 +14,18 @@ type Configuration struct {
 	Parameters map[string]string `json:"parameters"`
 }
 
+// NewConfiguration creates a new configuration with some default values
+func NewConfiguration() *Configuration {
+	conf := &Configuration{
+		Protocol:   "tcp",
+		Port:       3306,
+		Parameters: map[string]string{},
+		SQLType:    "mysql",
+	}
+
+	return conf
+}
+
 func (config *Configuration) parameterString() string {
 	s := ""
 

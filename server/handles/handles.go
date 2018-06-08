@@ -7,7 +7,7 @@ import (
 	"github.com/almerlucke/go-utils/server/auth/basic"
 	"github.com/almerlucke/go-utils/server/auth/jwt"
 	"github.com/almerlucke/go-utils/server/request/localization"
-	"github.com/almerlucke/kobogo/server/response"
+	"github.com/almerlucke/go-utils/server/response"
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/text/language"
 )
