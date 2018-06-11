@@ -4,6 +4,8 @@ package timestamp
 import (
 	"math"
 	"time"
+
+	timeUtils "github.com/almerlucke/go-utils/time"
 )
 
 // Timestamp typedef for Unix timestamp in milliseconds
@@ -21,22 +23,12 @@ func (timestamp Timestamp) Time() time.Time {
 	return time.Unix(int64(seconds), nano)
 }
 
-// StartOfDay truncate time to start of the day
-func StartOfDay(t time.Time) time.Time {
-	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
-}
-
-// EndOfDay ceil time to end of the day
-func EndOfDay(t time.Time) time.Time {
-	return time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 999999999, t.Location())
-}
-
 // StartOfDay truncate timestamp to start of day
 func (timestamp Timestamp) StartOfDay() Timestamp {
-	return New(StartOfDay(timestamp.Time()))
+	return New(timeUtils.StartOfDay(timestamp.Time()))
 }
 
 // EndOfDay truncate timestamp to end of day
 func (timestamp Timestamp) EndOfDay() Timestamp {
-	return New(EndOfDay(timestamp.Time()))
+	return New(timeUtils.EndOfDay(timestamp.Time()))
 }

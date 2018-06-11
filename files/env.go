@@ -27,7 +27,7 @@ func ReadDotEnvFile(filePath string, addToEnv bool) (map[string]string, error) {
 			continue
 		}
 
-		components := strings.Split(line.Line, "=")
+		components := strings.SplitN(line.Line, "=", 2)
 		if len(components) != 2 {
 			return nil, fmt.Errorf("error on line %d: expected a var and value", line.Count)
 		}
