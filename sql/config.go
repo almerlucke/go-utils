@@ -21,6 +21,7 @@ func NewConfiguration() *Configuration {
 		Port:       3306,
 		Parameters: map[string]string{},
 		SQLType:    "mysql",
+		Host:       "localhost",
 	}
 
 	return conf

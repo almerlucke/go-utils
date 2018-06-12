@@ -33,12 +33,14 @@ func New(config *Configuration) (*DB, error) {
 		return nil, err
 	}
 
+	queryer := &DB{DB: db}
+
 	// Following methods can be used to tweak the connection pooling
 	// db.SetConnMaxLifetime
 	// db.SetMaxIdleConns
 	// db.SetMaxOpenConns
 
-	return &DB{DB: db}, nil
+	return queryer, nil
 }
 
 // Transactional performs a given function wrapped inside a transaction
