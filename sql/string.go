@@ -33,5 +33,5 @@ func (s *String) Scan(value interface{}) error {
 	}
 
 	// otherwise, return an error
-	return errors.New("Failed to scan sql.String")
+	return errors.New("failed to scan sql.String")
 }

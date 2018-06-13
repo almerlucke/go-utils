@@ -15,13 +15,16 @@ type Configuration struct {
 }
 
 // NewConfiguration creates a new configuration with some default values
-func NewConfiguration() *Configuration {
+func NewConfiguration(host string, user string, password string, database string) *Configuration {
 	conf := &Configuration{
 		Protocol:   "tcp",
 		Port:       3306,
 		Parameters: map[string]string{},
 		SQLType:    "mysql",
-		Host:       "localhost",
+		Host:       host,
+		Database:   database,
+		User:       user,
+		Password:   password,
 	}
 
 	return conf

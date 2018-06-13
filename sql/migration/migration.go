@@ -5,29 +5,19 @@ package migration
 import (
 	"errors"
 	"io/ioutil"
+	"log"
+	"time"
+
+	"github.com/almerlucke/go-utils/sql/model"
 
 	"github.com/almerlucke/go-utils/sql"
-)
-
-const (
-	// MigrationTableCreateQuery query for creating migration table
-	MigrationTableCreateQuery = `
-		CREATE TABLE _migration (
-			id int(11) unsigned NOT NULL AUTO_INCREMENT,
-			version varchar(32) DEFAULT '0',
-			migration_date datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-			PRIMARY KEY (id)
-		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-	`
-	// MigrationEntryCreateQuery query to create initial migration info row
-	MigrationEntryCreateQuery = `INSERT INTO _migration () VALUES ()`
 )
 
 type (
 	// Info contains models database meta information
 	Info struct {
 		ID            int64        `db:"id"`
-		Version       string       `db:"version"`
+		Version       string       `db:"version" sql:"override,VARCHAR(64)"`
 		MigrationDate sql.DateTime `db:"migration_date"`
 	}
 
@@ -60,6 +50,19 @@ type (
 		migrations []Migration
 	}
 )
+
+// Global migration tabler
+var _migrationTable model.Tabler
+
+// Initialize table
+func init() {
+	table, err := model.NewTable("_migration", &Info{})
+	if err != nil {
+		log.Fatalf("failed to create migration table")
+	}
+
+	_migrationTable = table
+}
 
 // Migrate migrate via direct query string
 func (migration *QueryMigration) Migrate(queryer sql.Queryer) error {
@@ -115,40 +118,33 @@ func NewVersion(version string, migrations []Migration) *Version {
 	return &Version{version: version, migrations: migrations}
 }
 
-// GetMigrationInfo get migration info including database version for migrations
-func GetMigrationInfo(queryer sql.Queryer) (*Info, error) {
-	info := &Info{}
-
-	err := queryer.Get(info, "SELECT * FROM _migration")
-	if err != nil {
-		// Migration info table does not exist yet, create it
-		_, err = queryer.Exec(MigrationTableCreateQuery)
-		if err != nil {
-			return nil, err
-		}
-		// Insert initial migration info table
-		_, err = queryer.Exec(MigrationEntryCreateQuery)
-		if err != nil {
-			return nil, err
-		}
-		// Get migration info
-		err = queryer.Get(info, "SELECT * FROM _migration")
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return info, nil
-}
-
 // Migrate database versions
 func Migrate(queryer sql.Queryer, currentVersion string, versions []*Version) error {
-	// Get migration info from the database
-	info, err := GetMigrationInfo(queryer)
+	// Create table if not exists
+	_, err := queryer.Exec(_migrationTable.TableQuery())
 	if err != nil {
 		return err
 	}
 
+	// Get info row
+	result, err := _migrationTable.Select("*").Run(queryer)
+	if err != nil {
+		return err
+	}
+
+	// Prepare info
+	info := &Info{ID: 1, Version: "0", MigrationDate: sql.DateTime(time.Now().UTC())}
+	rows := result.([]*Info)
+	if len(rows) == 0 {
+		_, err := _migrationTable.Insert([]interface{}{info}, queryer)
+		if err != nil {
+			return err
+		}
+	} else {
+		info = rows[0]
+	}
+
+	// If current version is greater than database version we need to run migrations
 	if currentVersion > info.Version {
 		for _, migrationVersion := range versions {
 			// We only perform migrations for versions up to info version and including current version
@@ -162,13 +158,16 @@ func Migrate(queryer sql.Queryer, currentVersion string, versions []*Version) er
 		}
 
 		// Update info version
-		_, err = queryer.Exec("UPDATE _migration SET version=? WHERE id=?", currentVersion, info.ID)
+		info.Version = currentVersion
+		info.MigrationDate = sql.DateTime(time.Now().UTC())
+
+		_, err = _migrationTable.Update(info, queryer)
 		if err != nil {
 			return err
 		}
 	} else if currentVersion < info.Version {
 		// The current code version is lacking behind the database version, this is not allowed
-		return errors.New("Database migration version is greater than current version")
+		return errors.New("database migration version is greater than current version")
 	}
 
 	return nil

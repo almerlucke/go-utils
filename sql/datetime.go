@@ -72,7 +72,7 @@ func (t *DateTime) Scan(src interface{}) error {
 	case time.Time:
 		*t = DateTime(src.(time.Time))
 	default:
-		return errors.New("Invalid src for sql.DateTime")
+		return errors.New("invalid src for sql.DateTime")
 	}
 
 	return nil
