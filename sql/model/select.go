@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	sqlUtils "github.com/almerlucke/go-utils/sql"
+	"github.com/almerlucke/go-utils/sql/database"
 )
 
 // Selectable can be used as From in Select setup
@@ -140,7 +140,7 @@ func (sel *Select) Query() string {
 }
 
 // Run the select query
-func (sel *Select) Run(queryer sqlUtils.Queryer, args ...interface{}) (interface{}, error) {
+func (sel *Select) Run(queryer database.Queryer, args ...interface{}) (interface{}, error) {
 	resultType := sel.From.ResultType()
 	v := reflect.New(reflect.SliceOf(reflect.PtrTo(resultType)))
 

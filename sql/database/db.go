@@ -1,8 +1,8 @@
-// Package sql defines DB, Querier and Time convenience methods and structures
-package sql
+package database
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -33,18 +33,17 @@ func New(config *Configuration) (*DB, error) {
 		return nil, err
 	}
 
-	queryer := &DB{DB: db}
-
 	// Following methods can be used to tweak the connection pooling
 	// db.SetConnMaxLifetime
 	// db.SetMaxIdleConns
 	// db.SetMaxOpenConns
 
-	return queryer, nil
+	return &DB{DB: db}, nil
 }
 
-// Transactional performs a given function wrapped inside a transaction
-func (db *DB) Transactional(fn func(queryer Queryer) error) error {
+// Transactional performs a given function wrapped inside a transaction, if the function
+// returns false or an error we perform a rollback
+func (db *DB) Transactional(fn func(queryer Queryer) (bool, error)) error {
 	// Start transaction
 	tx, err := db.Beginx()
 	if err != nil {
@@ -52,11 +51,20 @@ func (db *DB) Transactional(fn func(queryer Queryer) error) error {
 	}
 
 	// Perform transactional function
-	err = fn(tx)
+	commit, err := fn(tx)
 	if err != nil {
-		// Rollback all changes
-		tx.Rollback()
+		// Try to rollback all changes after an error
+		rollbackErr := tx.Rollback()
+		if rollbackErr != nil {
+			return fmt.Errorf("rolback error: %v - when trying to rollback from error: %v", rollbackErr, err)
+		}
+
 		return err
+	}
+
+	if !commit {
+		// Try to rollback all changes
+		return tx.Rollback()
 	}
 
 	// Commit changes

@@ -13,15 +13,15 @@ import (
 	"strings"
 
 	"github.com/almerlucke/go-utils/reflection/structural"
-	sqlUtils "github.com/almerlucke/go-utils/sql"
+	"github.com/almerlucke/go-utils/sql/types"
 )
 
 // Model can be used as basis for records that can be updated and deleted
 type Model struct {
-	ID         uint64            `json:"id" db:"id" sql:"auto,NOT NULL AUTO_INCREMENT"`
-	CreatedAt  sqlUtils.DateTime `json:"createdAt" db:"created_at" sql:"auto,DEFAULT CURRENT_TIMESTAMP"`
-	ModifiedAt sqlUtils.DateTime `json:"modifiedAt" db:"modified_at" sql:"auto,DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
-	Deleted    bool              `json:"-" db:"deleted" sql:"auto,DEFAULT 0"`
+	ID         uint64         `json:"id" db:"id" sql:"no update,NOT NULL AUTO_INCREMENT"`
+	CreatedAt  types.DateTime `json:"createdAt" db:"created_at" sql:"no update,DEFAULT CURRENT_TIMESTAMP"`
+	ModifiedAt types.DateTime `json:"modifiedAt" db:"modified_at" sql:"no update,DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
+	Deleted    bool           `json:"-" db:"deleted" sql:"DEFAULT 0"`
 }
 
 // ColumnDescriptor column descriptor, is used by StructToTableDescriptor
@@ -32,8 +32,9 @@ type ColumnDescriptor struct {
 	Raw          string
 	OverrideType bool
 	IsPrimary    bool
+	HasDefault   bool
 	ActualName   string
-	Auto         bool
+	NoUpdate     bool
 }
 
 // TableDescriptor table descriptor, is used by StructToTableDescriptor
@@ -115,7 +116,7 @@ func fieldToMySQLType(field structural.FieldDescriptor) string {
 			return "blob"
 		}
 	default:
-		if field.Type().PkgPath() == "github.com/almerlucke/go-utils/sql" {
+		if field.Type().PkgPath() == "github.com/almerlucke/go-utils/sql/types" {
 			typeName := field.Type().Name()
 			if typeName == "Date" {
 				return "date"
@@ -139,8 +140,8 @@ func parseSQLTag(tag string, columnDesc *ColumnDescriptor) bool {
 			columnDesc.OverrideType = true
 		} else if component == "primary" {
 			columnDesc.IsPrimary = true
-		} else if component == "auto" {
-			columnDesc.Auto = true
+		} else if component == "no update" {
+			columnDesc.NoUpdate = true
 		} else if component != "" {
 			defs := strings.SplitN(component, "=", 2)
 			if len(defs) == 2 {
@@ -149,6 +150,10 @@ func parseSQLTag(tag string, columnDesc *ColumnDescriptor) bool {
 				}
 			} else {
 				columnDesc.Raw = defs[0]
+
+				if strings.Index(columnDesc.Raw, "DEFAULT") > -1 || strings.Index(columnDesc.Raw, "AUTO_INCREMENT") > -1 {
+					columnDesc.HasDefault = true
+				}
 			}
 		}
 	}
@@ -162,10 +167,10 @@ func parseSQLTag(tag string, columnDesc *ColumnDescriptor) bool {
 //   sql tag
 // - primary: this indicates that the fields is the primary key, otherwise the first field of the struct
 //   will be taken as primary key
-// - auto: this indicates that the field value will be auto generated, so is not included in the
-//	 Insert method query result
+// - no update: this indicates that the field value will not be updated with Update
 // - name=name: can be used to override the derived name from "db" tag or field name
-// - in all other cases the value is inserted as raw sql for a column in the CREATE table query
+// In all other cases the value is inserted as raw sql for a column in the CREATE table query
+// If the tag contains AUTO_INCREMENT or DEFAULT the field is not included with Insert
 func StructToTableDescriptor(obj interface{}) (*TableDescriptor, error) {
 	desc, ok := structural.NewStructDescriptor(obj)
 	if !ok {

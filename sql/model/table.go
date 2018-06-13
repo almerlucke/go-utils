@@ -7,7 +7,7 @@ import (
 	"log"
 	"reflect"
 
-	sqlUtils "github.com/almerlucke/go-utils/sql"
+	"github.com/almerlucke/go-utils/sql/database"
 )
 
 // Tabler interface for structs that represent a MySQL table
@@ -18,9 +18,9 @@ type Tabler interface {
 	TableKeysAndIndices() []string
 	TableDescriptor() *TableDescriptor
 	TableQuery() string
-	Insert([]interface{}, sqlUtils.Queryer) (sql.Result, error)
+	Insert([]interface{}, database.Queryer) (sql.Result, error)
 	Select(string) *Select
-	Update(interface{}, sqlUtils.Queryer) (sql.Result, error)
+	Update(interface{}, database.Queryer) (sql.Result, error)
 }
 
 // Table is a definition of a SQL table and conforms to tabler interface
@@ -82,7 +82,7 @@ func (table *Table) TableQuery() string {
 }
 
 // Insert objects into the table
-func (table *Table) Insert(objs []interface{}, queryer sqlUtils.Queryer) (sql.Result, error) {
+func (table *Table) Insert(objs []interface{}, queryer database.Queryer) (sql.Result, error) {
 	desc := table.Descriptor
 
 	var buffer bytes.Buffer
@@ -94,7 +94,7 @@ func (table *Table) Insert(objs []interface{}, queryer sqlUtils.Queryer) (sql.Re
 	numValues := 0
 
 	for _, column := range desc.Columns {
-		if column.Auto {
+		if column.HasDefault {
 			continue
 		} else {
 			if addComma {
@@ -131,7 +131,7 @@ func (table *Table) Insert(objs []interface{}, queryer sqlUtils.Queryer) (sql.Re
 		buffer.WriteRune('(')
 
 		for _, column := range desc.Columns {
-			if column.Auto {
+			if column.HasDefault {
 				continue
 			} else {
 				if innerAddComma {
@@ -161,7 +161,7 @@ func (table *Table) Select(fields string) *Select {
 }
 
 // Update object, use primary key for where clause
-func (table *Table) Update(obj interface{}, queryer sqlUtils.Queryer) (sql.Result, error) {
+func (table *Table) Update(obj interface{}, queryer database.Queryer) (sql.Result, error) {
 	var buffer bytes.Buffer
 
 	buffer.WriteString(fmt.Sprintf("UPDATE %v SET ", table.Name))
@@ -178,7 +178,7 @@ func (table *Table) Update(obj interface{}, queryer sqlUtils.Queryer) (sql.Resul
 
 	// Add column names to update query
 	for _, column := range desc.Columns {
-		if column == desc.PrimaryColumn {
+		if column == desc.PrimaryColumn || column.NoUpdate {
 			continue
 		}
 
@@ -200,7 +200,7 @@ func (table *Table) Update(obj interface{}, queryer sqlUtils.Queryer) (sql.Resul
 	f := v.FieldByName(desc.PrimaryColumn.ActualName)
 	values = append(values, f.Interface())
 
-	log.Printf("update query: %v\n", buffer.String())
+	log.Printf("update query %v\n", buffer.String())
 
 	return queryer.Exec(buffer.String(), values...)
 }
@@ -262,9 +262,9 @@ func TablerToQuery(tabler Tabler) string {
 	return buffer.String()
 }
 
-// NewDBWithTables creates a new DB object initialized with tables
-func NewDBWithTables(config *sqlUtils.Configuration, tables ...Tabler) (*sqlUtils.DB, error) {
-	db, err := sqlUtils.New(config)
+// NewDatabaseWithTables creates a new DB object initialized with tables
+func NewDatabaseWithTables(config *database.Configuration, tables ...Tabler) (*database.DB, error) {
+	db, err := database.New(config)
 	if err != nil {
 		return nil, err
 	}

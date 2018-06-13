@@ -6,27 +6,26 @@ import (
 	"errors"
 	"io/ioutil"
 	"log"
-	"time"
 
+	"github.com/almerlucke/go-utils/sql/database"
 	"github.com/almerlucke/go-utils/sql/model"
-
-	"github.com/almerlucke/go-utils/sql"
+	"github.com/almerlucke/go-utils/sql/types"
 )
 
 type (
 	// Info contains models database meta information
 	Info struct {
-		ID            int64        `db:"id"`
-		Version       string       `db:"version" sql:"override,VARCHAR(64)"`
-		MigrationDate sql.DateTime `db:"migration_date"`
+		ID            int64          `db:"id"`
+		Version       string         `db:"version" sql:"override,VARCHAR(64)"`
+		MigrationDate types.DateTime `db:"migration_date"`
 	}
 
 	// CustomMigrationFunc custom migration function to be run during migration
-	CustomMigrationFunc func(queryer sql.Queryer) error
+	CustomMigrationFunc func(queryer database.Queryer) error
 
 	// Migration interface type
 	Migration interface {
-		Migrate(sql.Queryer) error
+		Migrate(database.Queryer) error
 	}
 
 	// QueryMigration migrate by direct query
@@ -58,20 +57,20 @@ var _migrationTable model.Tabler
 func init() {
 	table, err := model.NewTable("_migration", &Info{})
 	if err != nil {
-		log.Fatalf("failed to create migration table")
+		log.Fatalf("failed to create migration table %v", err)
 	}
 
 	_migrationTable = table
 }
 
 // Migrate migrate via direct query string
-func (migration *QueryMigration) Migrate(queryer sql.Queryer) error {
+func (migration *QueryMigration) Migrate(queryer database.Queryer) error {
 	_, err := queryer.Exec(migration.Query)
 	return err
 }
 
 // Migrate migrate via SQL script
-func (migration *ScriptMigration) Migrate(queryer sql.Queryer) error {
+func (migration *ScriptMigration) Migrate(queryer database.Queryer) error {
 	queryBytes, err := ioutil.ReadFile(migration.Script)
 	if err != nil {
 		return err
@@ -82,12 +81,12 @@ func (migration *ScriptMigration) Migrate(queryer sql.Queryer) error {
 }
 
 // Migrate migrate via custom function
-func (migration *CustomMigration) Migrate(queryer sql.Queryer) error {
+func (migration *CustomMigration) Migrate(queryer database.Queryer) error {
 	return migration.Func(queryer)
 }
 
 // Migrate performs all migrations for a version
-func (version *Version) Migrate(queryer sql.Queryer) error {
+func (version *Version) Migrate(queryer database.Queryer) error {
 	for _, migration := range version.migrations {
 		err := migration.Migrate(queryer)
 		if err != nil {
@@ -119,7 +118,7 @@ func NewVersion(version string, migrations []Migration) *Version {
 }
 
 // Migrate database versions
-func Migrate(queryer sql.Queryer, currentVersion string, versions []*Version) error {
+func Migrate(queryer database.Queryer, currentVersion string, versions []*Version) error {
 	// Create table if not exists
 	_, err := queryer.Exec(_migrationTable.TableQuery())
 	if err != nil {
@@ -133,7 +132,7 @@ func Migrate(queryer sql.Queryer, currentVersion string, versions []*Version) er
 	}
 
 	// Prepare info
-	info := &Info{ID: 1, Version: "0", MigrationDate: sql.DateTime(time.Now().UTC())}
+	info := &Info{ID: 1, Version: "0", MigrationDate: types.NewDateTime()}
 	rows := result.([]*Info)
 	if len(rows) == 0 {
 		_, err := _migrationTable.Insert([]interface{}{info}, queryer)
@@ -159,7 +158,7 @@ func Migrate(queryer sql.Queryer, currentVersion string, versions []*Version) er
 
 		// Update info version
 		info.Version = currentVersion
-		info.MigrationDate = sql.DateTime(time.Now().UTC())
+		info.MigrationDate = types.NewDateTime()
 
 		_, err = _migrationTable.Update(info, queryer)
 		if err != nil {
