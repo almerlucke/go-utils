@@ -151,7 +151,9 @@ func parseSQLTag(tag string, columnDesc *ColumnDescriptor) bool {
 			} else {
 				columnDesc.Raw = defs[0]
 
-				if strings.Index(columnDesc.Raw, "DEFAULT") > -1 || strings.Index(columnDesc.Raw, "AUTO_INCREMENT") > -1 {
+				lowerRaw := strings.ToLower(columnDesc.Raw)
+
+				if strings.Index(lowerRaw, "default") > -1 || strings.Index(lowerRaw, "auto_increment") > -1 {
 					columnDesc.HasDefault = true
 				}
 			}

@@ -45,7 +45,7 @@ func (t *Date) scanString(s string) error {
 		return err
 	}
 
-	*t = Date(tt)
+	*t = Date(tt.UTC())
 
 	return nil
 }
@@ -54,7 +54,7 @@ func (t *Date) scanString(s string) error {
 func (t *Date) Scan(src interface{}) error {
 	// If value in db is NULL return current time
 	if src == nil {
-		*t = Date(time.Now())
+		*t = NewDate()
 		return nil
 	}
 
@@ -70,7 +70,7 @@ func (t *Date) Scan(src interface{}) error {
 			return err
 		}
 	case time.Time:
-		*t = Date(src.(time.Time))
+		*t = Date((src.(time.Time)).UTC())
 	default:
 		return errors.New("invalid src for sql.Date")
 	}
@@ -101,7 +101,7 @@ func (t *Date) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	*t = Date(tt)
+	*t = Date(tt.UTC())
 
 	return nil
 }

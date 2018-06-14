@@ -21,6 +21,7 @@ type Tabler interface {
 	Insert([]interface{}, database.Queryer) (sql.Result, error)
 	Select(string) *Select
 	Update(interface{}, database.Queryer) (sql.Result, error)
+	Delete(interface{}, database.Queryer) (sql.Result, error)
 }
 
 // Table is a definition of a SQL table and conforms to tabler interface
@@ -201,6 +202,28 @@ func (table *Table) Update(obj interface{}, queryer database.Queryer) (sql.Resul
 	values = append(values, f.Interface())
 
 	log.Printf("update query %v\n", buffer.String())
+
+	return queryer.Exec(buffer.String(), values...)
+}
+
+// Delete object
+func (table *Table) Delete(obj interface{}, queryer database.Queryer) (sql.Result, error) {
+	var buffer bytes.Buffer
+
+	buffer.WriteString(fmt.Sprintf("DELETE FROM %v ", table.Name))
+
+	desc := table.Descriptor
+	values := []interface{}{}
+	t := reflect.TypeOf(obj)
+	v := reflect.ValueOf(obj)
+	if t.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	buffer.WriteString(fmt.Sprintf(" WHERE `%v`=?", desc.PrimaryColumn.Name))
+
+	f := v.FieldByName(desc.PrimaryColumn.ActualName)
+	values = append(values, f.Interface())
 
 	return queryer.Exec(buffer.String(), values...)
 }
