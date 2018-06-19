@@ -187,6 +187,21 @@ func init() {
 	RequestTable = table
 }
 
+// UserByID get user by id
+func UserByID(userID uint64, queryer database.Queryer) (*User, error) {
+	result, err := UserTable.Select("*").Where("{{ID}}=?").Run(queryer, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	users := result.([]*User)
+	if len(users) == 0 {
+		return nil, nil
+	}
+
+	return users[0], nil
+}
+
 // BelongsToOrganization check if user belongs to organization
 func (user *User) BelongsToOrganization(organizationID uint64, queryer database.Queryer) (*BelongsTo, error) {
 	result, err := BelongsToTable.Select("{{ID}}").Where("{{OrganizationID}}=? AND {{UserID}}=?").Run(queryer, organizationID, user.ID)
@@ -200,6 +215,29 @@ func (user *User) BelongsToOrganization(organizationID uint64, queryer database.
 	}
 
 	return connections[0], nil
+}
+
+// BelongsTo get all organizations this user belongs to
+func (user *User) BelongsTo(queryer database.Queryer) ([]*Organization, error) {
+	result, err := BelongsToTable.Select("{{OrganizationID}}").Where("{{UserID}}=?").Run(queryer, user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	connections := result.([]*BelongsTo)
+	organizations := make([]*Organization, len(connections))
+
+	for i, v := range connections {
+		result, err = OrganizationTable.Select("*").Where("{{ID}}=?").Run(queryer, v.OrganizationID)
+		if err != nil {
+			return nil, err
+		}
+
+		organizationResult := result.([]*Organization)
+		organizations[i] = organizationResult[0]
+	}
+
+	return organizations, nil
 }
 
 // LoginWithEmailOrUsername find a user by username or email and verify password.
@@ -509,6 +547,39 @@ func AcceptInvitation(token string, user *User, queryer database.Queryer) (Token
 	}
 
 	return TokenRequestErrorCodeSuccess, nil
+}
+
+// RegisterOrganization registers a new organization
+func RegisterOrganization(name string, description string, avatar string, user *User, queryer database.Queryer) (*Organization, error) {
+	organization := &Organization{
+		MinimumProfile: MinimumProfile{
+			Name:        name,
+			Description: types.String(description),
+			Avatar:      types.String(avatar),
+		},
+	}
+
+	result, err := OrganizationTable.Insert([]interface{}{organization}, queryer)
+	if err != nil {
+		return nil, err
+	}
+
+	organizationID, _ := result.LastInsertId()
+
+	belongsTo := &BelongsTo{
+		OrganizationID: uint64(organizationID),
+		UserID:         user.ID,
+		Role:           OwnerRole,
+	}
+
+	result, err = BelongsToTable.Insert([]interface{}{belongsTo}, queryer)
+	if err != nil {
+		return nil, err
+	}
+
+	organization.ID = belongsTo.OrganizationID
+
+	return organization, nil
 }
 
 /*
