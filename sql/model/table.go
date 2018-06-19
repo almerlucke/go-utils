@@ -15,7 +15,7 @@ type Tabler interface {
 	TableEngine() string
 	TableCharSet() string
 	TableName() string
-	TableKeysAndIndices() []string
+	TableKeysAndConstraints() []string
 	TableDescriptor() *TableDescriptor
 	TableQuery() string
 	Insert([]interface{}, database.Queryer) (sql.Result, error)
@@ -26,20 +26,20 @@ type Tabler interface {
 
 // Table is a definition of a SQL table and conforms to tabler interface
 type Table struct {
-	Engine         string
-	CharSet        string
-	Name           string
-	KeysAndIndices []string
-	Descriptor     *TableDescriptor
+	Engine             string
+	CharSet            string
+	Name               string
+	KeysAndConstraints []string
+	Descriptor         *TableDescriptor
 }
 
 // NewTable creates a new table definition from a struct template
 func NewTable(name string, template interface{}) (*Table, error) {
 	table := &Table{
-		Engine:         "InnoDB",
-		CharSet:        "utf8mb4",
-		Name:           name,
-		KeysAndIndices: []string{},
+		Engine:             "InnoDB",
+		CharSet:            "utf8mb4",
+		Name:               name,
+		KeysAndConstraints: []string{},
 	}
 
 	desc, err := StructToTableDescriptor(template)
@@ -67,9 +67,9 @@ func (table *Table) TableName() string {
 	return table.Name
 }
 
-// TableKeysAndIndices returns an array of raw KEY or INDEX definitions
-func (table *Table) TableKeysAndIndices() []string {
-	return table.KeysAndIndices
+// TableKeysAndConstraints returns an array of raw KEY and CONSTRAINT definitions
+func (table *Table) TableKeysAndConstraints() []string {
+	return table.KeysAndConstraints
 }
 
 // TableDescriptor returns a descriptor of the table object
@@ -267,7 +267,7 @@ func TablerToQuery(tabler Tabler) string {
 		entries = append(entries, fmt.Sprintf("PRIMARY KEY (`%v`)", desc.PrimaryColumn.Name))
 	}
 
-	for _, key := range tabler.TableKeysAndIndices() {
+	for _, key := range tabler.TableKeysAndConstraints() {
 		entries = append(entries, key)
 	}
 
