@@ -202,6 +202,21 @@ func UserByID(userID uint64, queryer database.Queryer) (*User, error) {
 	return users[0], nil
 }
 
+// OrganizationByID get organization by id
+func OrganizationByID(organizationID uint64, queryer database.Queryer) (*Organization, error) {
+	result, err := OrganizationTable.Select("*").Where("{{ID}}=?").Run(queryer, organizationID)
+	if err != nil {
+		return nil, err
+	}
+
+	organizations := result.([]*Organization)
+	if len(organizations) == 0 {
+		return nil, nil
+	}
+
+	return organizations[0], nil
+}
+
 // BelongsToOrganization check if user belongs to organization
 func (user *User) BelongsToOrganization(organizationID uint64, queryer database.Queryer) (*BelongsTo, error) {
 	result, err := BelongsToTable.Select("{{ID}}").Where("{{OrganizationID}}=? AND {{UserID}}=?").Run(queryer, organizationID, user.ID)
