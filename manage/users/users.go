@@ -219,7 +219,7 @@ func OrganizationByID(organizationID uint64, queryer database.Queryer) (*Organiz
 
 // BelongsToOrganization check if user belongs to organization
 func (user *User) BelongsToOrganization(organizationID uint64, queryer database.Queryer) (*BelongsTo, error) {
-	result, err := BelongsToTable.Select("{{ID}}").Where("{{OrganizationID}}=? AND {{UserID}}=?").Run(queryer, organizationID, user.ID)
+	result, err := BelongsToTable.Select("*").Where("{{OrganizationID}}=? AND {{UserID}}=?").Run(queryer, organizationID, user.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -233,10 +233,10 @@ func (user *User) BelongsToOrganization(organizationID uint64, queryer database.
 }
 
 // BelongsTo get all organizations this user belongs to
-func (user *User) BelongsTo(queryer database.Queryer) ([]*Organization, error) {
-	result, err := BelongsToTable.Select("{{OrganizationID}}").Where("{{UserID}}=?").Run(queryer, user.ID)
+func (user *User) BelongsTo(queryer database.Queryer) ([]*BelongsTo, []*Organization, error) {
+	result, err := BelongsToTable.Select("*").Where("{{UserID}}=?").Run(queryer, user.ID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	connections := result.([]*BelongsTo)
@@ -245,14 +245,14 @@ func (user *User) BelongsTo(queryer database.Queryer) ([]*Organization, error) {
 	for i, v := range connections {
 		result, err = OrganizationTable.Select("*").Where("{{ID}}=?").Run(queryer, v.OrganizationID)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		organizationResult := result.([]*Organization)
 		organizations[i] = organizationResult[0]
 	}
 
-	return organizations, nil
+	return connections, organizations, nil
 }
 
 // LoginWithEmailOrUsername find a user by username or email and verify password.
