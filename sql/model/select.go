@@ -3,7 +3,6 @@ package model
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"reflect"
 	"regexp"
 	"strings"
@@ -136,8 +135,6 @@ func (sel *Select) Query() string {
 	if sel.LimitResults != nil {
 		buffer.WriteString(fmt.Sprintf(" LIMIT %v, %v", sel.LimitResults.Offset, sel.LimitResults.RowCount))
 	}
-
-	log.Printf("query %v\n", buffer.String())
 
 	return buffer.String()
 }

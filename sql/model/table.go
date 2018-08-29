@@ -18,6 +18,7 @@ type Tabler interface {
 	TableKeysAndConstraints() []string
 	TableDescriptor() *TableDescriptor
 	TableQuery() string
+	ResolveQueryTemplates(string) string
 	Insert([]interface{}, database.Queryer) (sql.Result, error)
 	Select(string) *Select
 	Update(interface{}, database.Queryer) (sql.Result, error)
@@ -82,6 +83,11 @@ func (table *Table) TableQuery() string {
 	return TablerToQuery(table)
 }
 
+// ResolveQueryTemplates resolve a query with struct field template syntax to a normal sql query
+func (table *Table) ResolveQueryTemplates(query string) string {
+	return replaceStructFieldsWithSQLFields(query, table.TemplateMap())
+}
+
 // Insert objects into the table
 func (table *Table) Insert(objs []interface{}, queryer database.Queryer) (sql.Result, error) {
 	desc := table.Descriptor
@@ -104,7 +110,7 @@ func (table *Table) Insert(objs []interface{}, queryer database.Queryer) (sql.Re
 				addComma = true
 			}
 
-			buffer.WriteString(column.Name)
+			buffer.WriteString("`" + column.Name + "`")
 
 			numValues++
 		}
@@ -201,7 +207,7 @@ func (table *Table) Update(obj interface{}, queryer database.Queryer) (sql.Resul
 	f := v.FieldByName(desc.PrimaryColumn.ActualName)
 	values = append(values, f.Interface())
 
-	log.Printf("update query %v\n", buffer.String())
+	log.Printf("query upate %v %v\n", values, buffer.String())
 
 	return queryer.Exec(buffer.String(), values...)
 }
