@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
-	"log"
 	"reflect"
 
 	"github.com/almerlucke/go-utils/sql/database"
@@ -206,8 +205,6 @@ func (table *Table) Update(obj interface{}, queryer database.Queryer) (sql.Resul
 
 	f := v.FieldByName(desc.PrimaryColumn.ActualName)
 	values = append(values, f.Interface())
-
-	log.Printf("query upate %v %v\n", values, buffer.String())
 
 	return queryer.Exec(buffer.String(), values...)
 }
